@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Album Prewed Flipbook - Kisah Cinta Abadi</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -10,6 +10,7 @@
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     user-select: none !important;
+    touch-action: pan-y; /* Mencegah zoom berlebih saat swipe */
   }
   #antiOverlay {
     position: fixed;
@@ -18,20 +19,22 @@
     height: 100%;
     z-index: 99999;
     pointer-events: none;
-    background: rgba(255,255,255,0.005); /* super tipis, mengganggu screenshot tools */
+    background: rgba(255,255,255,0.005);
   }
 </style>  
 
 <style>
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent; /* Hilangkan highlight biru saat di-tap di HP */
     }
 
     body {
       margin: 0;
       padding: 0;
-      height: 95vh;
-      background: linear-gradient(to bottom right, #fAD7A0, #82E0AA); /* Warna pastel alam */
+      height: 100dvh; /* Menggunakan dynamic viewport agar pas di browser HP */
+      width: 100vw;
+      background: linear-gradient(to bottom right, #fAD7A0, #82E0AA);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -40,75 +43,72 @@
       position: relative;
     }
 
+    /* ALBUM CONTAINER FULL HP */
     .album-container {
-      width: 850px;
-      max-width: 95vw;
-      height: 500px;
-      max-height: 80vh;
+      width: 92vw; /* Lebar maksimal di HP */
+      max-width: 480px; /* Batas wajar untuk tablet/PC agar tetap portrait */
+      height: 75dvh; /* Ruang untuk atas & bawah (tombol) */
+      max-height: 800px;
       position: relative;
-      perspective: 2200px; /* Meningkatkan perspektif untuk efek 3D */
-      background-color: #eee; /* Background dasar container */
-      border-radius: 15px; /* Radius container */
-      box-shadow: 0 15px 50px rgba(0,0,0,0.2); /* Kembali ke shadow awal */
+      perspective: 2500px;
+      background-color: #eee;
+      border-radius: 12px;
+      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
     }
 
     /* Pita */
     .album-container::after {
-        content: '🎀'; /* Unicode for ribbon */
+        content: '🎀';
         position: absolute;
-        left: -10px;
-        top: -10px;
-        font-size: 80px;
+        left: -15px;
+        top: -15px;
+        font-size: clamp(50px, 15vw, 80px);
         color: #e74c3c;
         text-shadow: 1px 2px 4px rgba(0,0,0,0.4);
-        z-index: 100; /* Pastikan pita di atas semuanya */
-        transform: rotate(-15deg) scale(1.15);
+        z-index: 100;
+        transform: rotate(-15deg);
         pointer-events: none;
     }
 
     .page {
       position: absolute;
-      width: 100%; /* Kembali ke lebar penuh container */
-      height: 105%; /* Kembali ke tinggi sedikit lebih dari container */
-      top: 0; /* Kembali ke top 0 */
-      left: 0; /* Kembali ke left 0 */
+      width: 100%; 
+      height: 100%; 
+      top: 0; 
+      left: 0; 
       background-color: #fff;
-      border-radius: 12px; /* Kembali ke radius awal */
-      box-shadow: 0 12px 45px rgba(0,0,0,0.15); /* Kembali ke shadow awal */
+      border-radius: 12px;
+      box-shadow: 0 12px 45px rgba(0,0,0,0.15);
       overflow: hidden;
-      /* transform-origin diatur oleh JS untuk flip */
-      transition: transform 1.1s cubic-bezier(0.6, -0.28, 0.735, 0.045); /* Menggunakan kurva flip yang lebih baik */
-      backface-visibility: visible; /* Memastikan bagian belakang terlihat */
+      transition: transform 1.1s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+      backface-visibility: hidden; /* Fix flicking di mobile */
+      -webkit-backface-visibility: hidden;
       transform-style: preserve-3d;
-      border: 8px solid #fefefe; /* Kembali ke border awal */
-      padding: 15px; /* Kembali ke padding awal */
+      border: 6px solid #fefefe;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transform: rotateY(0deg); /* Default state */
+      transform: rotateY(0deg);
     }
 
-     /* Style untuk halaman yang diflip (di belakang) */
     .page.flipped {
       transform: rotateY(-180deg);
-       /* Z-index dikelola oleh JS saat animasi */
-       box-shadow: -10px 10px 40px rgba(0,0,0,0.3); /* Kembali ke shadow saat diflip */
+      box-shadow: -10px 10px 40px rgba(0,0,0,0.3);
     }
 
-    /* Style untuk halaman yang sedang berputar (tinggikan z-index) */
     .page.is-flipping, .page.is-unflipping {
-        z-index: 9999 !important; /* Pastikan halaman yang sedang berputar di depan */
+        z-index: 9999 !important;
     }
 
-    /* Konten Halaman */
     .page .content-wrapper {
         flex-grow: 1;
-        width: 95%; /* Kembali ke 95% lebar */
+        width: 100%;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        gap: 15px;
+        gap: 12px;
         overflow: hidden;
         padding: 0;
     }
@@ -123,263 +123,211 @@
     }
 
     .page .single-photo-container {
-        width: auto;
-        height: auto;
-        max-width: 100%;
-        max-height: 95%; /* Kembali ke 95% */
+        width: 100%;
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
     }
+    
     .page .single-photo-container img {
       max-width: 100%;
-      max-height: 95%; /* Kembali ke 95% */
+      max-height: 100%;
       object-fit: contain;
       cursor: zoom-in;
       display: block;
       border-radius: 5px;
-      box-shadow: 4px 4px 12px rgba(0,0,0,0.18); /* Kembali ke shadow awal */
+      box-shadow: 4px 4px 12px rgba(0,0,0,0.18);
       transition: transform 0.35s ease, box-shadow 0.35s ease;
       background-color: #f8f8f8;
     }
-    .page .single-photo-container img:hover {
-        transform: scale(1.04) rotate(1deg); /* Kembali ke hover awal */
-        box-shadow: 6px 6px 20px rgba(0,0,0,0.25); /* Kembali ke hover shadow awal */
+
+    .page .single-photo-container img:active {
+        transform: scale(0.98);
     }
 
     .photo-grid {
       display: grid;
       width: 100%;
       height: 100%;
-      gap: 10px; /* Kembali ke gap awal */
+      gap: 8px;
     }
     .photo-grid .grid-item {
         overflow: hidden;
-        border-radius: 4px; /* Kembali ke radius awal */
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.15); /* Kembali ke shadow awal */
+        border-radius: 6px;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
         background-color: #e8e8e8;
     }
     .photo-grid .grid-item img {
       width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;
-      transition: transform 0.3s ease, filter 0.3s ease;
+      transition: transform 0.3s ease;
     }
-    .photo-grid .grid-item img:hover { transform: scale(1.08); filter: brightness(1.05); }
 
     /* KATA-KATA ROMANTIS */
     .page-caption {
-      width: 95%; /* Kembali ke 95% */
-      max-width: 650px; /* Tetap pakai max-width */
-      padding: 12px 20px; /* Kembali ke padding awal */
+      width: 98%;
+      padding: 10px 15px;
       font-family: 'Caveat', 'Dancing Script', cursive;
-      font-size: clamp(1.1em, 2.5vw, 1.45em); /* Kembali ke font-size awal */
+      font-size: clamp(1.1em, 5vw, 1.4em); /* Ukuran teks responsif HP */
       color: #5D4037;
       text-align: center;
-      line-height: 1.6; /* Kembali ke line-height awal */
-      border-radius: 8px; /* Kembali ke radius awal */
+      line-height: 1.4;
+      border-radius: 8px;
       flex-shrink: 0;
       position: relative;
       background-image: radial-gradient(#fff 10%, transparent 0);
-      background-size: 10px 10px;
-      opacity: 0.9;
+      background-size: 8px 8px;
+      opacity: 0.95;
       filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.08));
     }
-     .page-caption p { margin: 0; }
+    .page-caption p { margin: 0; }
 
-    /* Penyesuaian untuk halaman dengan teks kutipan (Pola 5) */
-    /* Menggunakan selektor dengan :last-child exclusion dari v2, tapi gaya dari v1 */
+    /* Pola 5 */
     .page:nth-child(6n+6):not(:first-child, :last-child) .page-caption {
-        max-width: 80%; /* Kembali ke 80% */
-        font-size: clamp(1.2em, 2.8vw, 1.6em); /* Tetap pakai font-size ini dari v1*/
+        max-width: 90%;
+        font-size: clamp(1.1em, 5.5vw, 1.5em);
         font-style: italic;
         border-left: 4px solid #BCAAA4;
-        padding-left: 25px; /* Kembali ke padding-left ini dari v1 */
-        margin-top: 20px; /* Kembali ke margin-top ini dari v1 */
+        padding-left: 15px;
+        margin-top: 15px;
         background-color: transparent;
         background-image: none;
-        opacity: 1;
-        filter: none;
         text-align: left;
         color: #4E342E;
-        position: relative;
     }
-    /* Adjust quote marks for Pola 5 (keeping the slightly better positions from v2) */
-     .page:nth-child(6n+6):not(:first-child, :last-child) .page-caption::before {
-        content: '“';
-        position: absolute;
-        left: 5px;
-        top: -10px; /* Dari v1 */
-        font-size: 4em;
-        color: rgba(188, 170, 164, 0.5);
-        font-family: serif;
-        line-height: 1;
-        z-index: -1; /* Di belakang teks */
-     }
-     .page:nth-child(6n+6):not(:first-child, :last-child) .page-caption::after {
-        content: '”';
-        position: absolute;
-        right: 5px;
-        bottom: -15px; /* Dari v2 */
-        font-size: 4em;
-        color: rgba(188, 170, 164, 0.5);
-        font-family: serif;
-        line-height: 1;
-        z-index: -1; /* Di belakang teks */
-     }
-
-     /* Penyesuaian media area untuk Pola 5 (dari v2, agar kutipan muat) */
-    .page:nth-child(6n+6):not(:first-child, :last-child) .media-area {
-        max-height: 60%; /* Biarkan lebih banyak ruang untuk kutipan */
+    .page:nth-child(6n+6):not(:first-child, :last-child) .page-caption::before {
+        content: '“'; position: absolute; left: -5px; top: -15px; font-size: 3em; color: rgba(188, 170, 164, 0.4); font-family: serif; z-index: -1;
     }
-    .page:nth-child(6n+6):not(:first-child, :last-child) .single-photo-container img {
-        transform: scale(0.95);
-         box-shadow: 6px 6px 15px rgba(0,0,0,0.18);
+    .page:nth-child(6n+6):not(:first-child, :last-child) .page-caption::after {
+        content: '”'; position: absolute; right: 0; bottom: -20px; font-size: 3em; color: rgba(188, 170, 164, 0.4); font-family: serif; z-index: -1;
     }
 
-
-    /* --- VARIASI DESAIN HALAMAN --- */
-    /* Pola 1: Foto Tunggal Miring Kiri */
+    /* VARIASI DESAIN HALAMAN (Disempurnakan untuk layar vertikal) */
     .page:nth-child(6n+2):not(:first-child, :last-child) .single-photo-container img {
-      transform: rotate(-4deg) scale(0.92);
-      border: 8px solid #fff;
-      box-shadow: 8px 8px 25px rgba(0,0,0,0.2);
+      transform: rotate(-2deg) scale(0.96);
+      border: 6px solid #fff;
     }
-
-    /* Pola 2: Grid 2x1 */
+    
+    /* Karena HP portrait, Grid 2x1 diubah vertikal 1x2 agar gambar tak gepeng */
     .page:nth-child(6n+3):not(:first-child, :last-child) .photo-grid {
-      grid-template-columns: 1fr 1fr; grid-template-rows: 1fr;
+      grid-template-columns: 1fr; grid-template-rows: 1fr 1fr;
     }
-    .page:nth-child(6n+3):not(:first-child, :last-child) .photo-grid .grid-item:first-child img { transform: rotate(2deg) scale(0.97); }
-    .page:nth-child(6n+3):not(:first-child, :last-child) .photo-grid .grid-item:last-child img { transform: rotate(-2.5deg) scale(0.97); }
+    .page:nth-child(6n+3):not(:first-child, :last-child) .photo-grid .grid-item:first-child img { transform: rotate(1deg) scale(0.98); }
 
-    /* Pola 3: Foto Tunggal Polaroid Style */
     .page:nth-child(6n+4):not(:first-child, :last-child) .single-photo-container img {
-      border: 15px solid white; border-bottom-width: 45px;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.28);
-      transform: rotate(3.5deg) scale(0.88);
+      border: 10px solid white; border-bottom-width: 35px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+      transform: rotate(2deg) scale(0.92);
     }
-
-    /* Pola 4: Grid 1x2 */
     .page:nth-child(6n+5):not(:first-child, :last-child) .photo-grid {
       grid-template-columns: 1fr; grid-template-rows: 1fr 1fr;
-      max-height: 95%; /* Batasi tinggi grid agar caption muat */
     }
-
-     /* Pola 6: Grid Asimetris (Menggunakan gaya dari v1/v2 awal) */
     .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid {
-        grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr;
     }
-    .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(1) { grid-column: 1 / 2; grid-row: 1 / 3; }
-    .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(2) { grid-column: 2 / 3; grid-row: 1 / 2; }
+    .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(1) { grid-column: 1 / 3; grid-row: 1 / 2; }
+    .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(2) { grid-column: 1 / 2; grid-row: 2 / 3; }
     .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(3) { grid-column: 2 / 3; grid-row: 2 / 3; }
-    /* Adjust transforms for asymmetry */
-     .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(1) img { transform: scale(1.02); }
-     .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(2) img { transform: rotate(1.5deg) scale(1.05); }
-     .page:nth-child(6n+7):not(:first-child, :last-child) .photo-grid .grid-item:nth-child(3) img { transform: rotate(-1.8deg) scale(1.05); }
 
-
-    /* --- Sampul --- */
+    /* Sampul */
     .cover-content {
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       width: 100%; height: 100%;
-      background: linear-gradient(135deg, #FFF9C4, #C8E6C9); /* Warna sampul pastel cerah */
-      color: #333; text-align: center; padding: 25px; border-radius: 5px;
+      background: linear-gradient(135deg, #FFF9C4, #C8E6C9);
+      color: #333; text-align: center; padding: 20px; border-radius: 8px;
     }
     .cover-content h1 {
-      font-size: clamp(28px, 5vw, 45px);
-      margin-bottom: 15px;
+      font-size: clamp(26px, 8vw, 45px);
+      margin-bottom: 10px;
       color: #4E342E; font-weight: 700;
       font-family: 'Dancing Script', cursive;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     .cover-content p {
-      font-size: clamp(18px, 3vw, 22px);
+      font-size: clamp(15px, 4vw, 22px);
       font-weight: 500;
       color: #6D4C41;
-      font-family: 'Poppins', sans-serif;
+      margin: 10px 0;
     }
 
-     /* Halaman Belakang (Back Cover) */
-    .page:last-child:not(.flipped) {
-        /* transform-origin dan posisi diatur oleh JS */
-         background: linear-gradient(135deg, #C8E6C9, #FFF9C4); /* Balik gradien */
-    }
-    .page:last-child:not(.flipped) .cover-content {
-         background: none; /* Hapus background cover-content untuk melihat background page */
-         color: #5D4037;
-    }
-     .page:last-child:not(.flipped) h2 {
-         font-size: clamp(24px, 4vw, 38px);
-         margin-bottom: 10px;
-         color: #4E342E;
-         font-family: 'Dancing Script', cursive;
-         text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-     }
-     .page:last-child:not(.flipped) p {
-          font-size: clamp(16px, 2.5vw, 18px);
-          font-weight: 400;
-          color: #6D4C41;
-          font-family: 'Poppins', sans-serif;
-     }
+    .page:last-child:not(.flipped) { background: linear-gradient(135deg, #C8E6C9, #FFF9C4); }
+    .page:last-child:not(.flipped) .cover-content { background: none; }
 
-
-    /* Controls, Lightbox, MusicToggle */
+    /* CONTROLS - FIXED DI LAYAR HP */
     .controls {
-      position: absolute; bottom: -70px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 20px; padding: 10px; z-index: 100;
+      position: fixed; 
+      bottom: 2dvh; 
+      left: 50%; 
+      transform: translateX(-50%);
+      width: 90vw;
+      display: flex; 
+      justify-content: space-between; 
+      gap: 15px; 
+      z-index: 1000;
     }
-    .controls button, #musicToggle {
+    
+    .controls button {
+      flex: 1;
       background: #78909C; color: white; border: none;
-      padding: 12px 25px; font-size: 16px; font-weight: 500; border-radius: 8px;
-      cursor: pointer; transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      padding: 15px 0; font-size: 16px; font-weight: 600; 
+      border-radius: 30px; /* Bentuk pill modern */
+      cursor: pointer; transition: background 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    
+    .controls button:active { transform: scale(0.95); }
+    .controls button:disabled { background: #CFD8DC; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
+
+    #musicToggle { 
+      position: fixed; 
+      top: 2dvh; 
+      right: 4vw; 
+      z-index: 1000;
+      background: rgba(120, 144, 156, 0.9);
+      backdrop-filter: blur(5px);
+      color: white; border: none;
+      padding: 10px 15px; font-size: 14px; font-weight: 600; 
+      border-radius: 20px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
     }
-    .controls button:hover:not(:disabled), #musicToggle:hover {
-      background: #90A4AE; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.25);
-    }
-     .controls button:active, #musicToggle:active {
-         transform: translateY(0);
-         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-     }
-    .controls button:disabled { background: #CFD8DC; cursor: not-allowed; opacity: 0.9; box-shadow: none; }
 
-
+    /* LIGHTBOX */
     #lightbox {
       display: none; position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+      width: 100vw; height: 100dvh; background: rgba(0,0,0,0.95);
       justify-content: center; align-items: center; z-index: 10000;
-      opacity: 0; transition: opacity 0.35s ease-in-out;
+      opacity: 0; transition: opacity 0.3s ease;
     }
     #lightbox.active { display: flex; opacity: 1; }
     #lightbox img {
-      max-width: 95vw; max-height: 95vh; border-radius: 8px;
-      box-shadow: 0 0 60px rgba(0,0,0,0.8); object-fit: contain;
-      transform: none !important; border: none !important; filter: none !important;
+      max-width: 95vw; max-height: 90dvh; border-radius: 8px;
+      object-fit: contain;
     }
     #lightbox-close {
-        position: absolute; top: 15px; right: 25px; font-size: 40px;
+        position: absolute; top: 20px; right: 20px; font-size: 50px;
         color: white; cursor: pointer; background: none; border: none;
-        transition: transform 0.2s ease, color 0.2s ease;
-        text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        width: 50px; height: 50px; line-height: 50px; text-align: center;
     }
-    #lightbox-close:hover { transform: scale(1.1); color: #ccc; }
-
-    #musicToggle { position: absolute; top: -65px; right: 5px; z-index: 100;}
-
   </style>
 </head>
 <body>
 <div id="antiOverlay"></div>
-<div class="album-container" id="album" role="region" aria-label="Album Prewed Flipbook - Kisah Cinta Abadi">
-  <!-- Cover Page (index 0) -->
+
+<button id="musicToggle" aria-label="Putar atau Jeda Musik">🎶 Putar Musik</button>
+
+<div class="album-container" id="album" role="region" aria-label="Album Prewed Flipbook">
+  
+  <!-- Halaman 1: Sampul -->
   <div class="page" data-page-name="Sampul Kisah Kita">
     <div class="cover-content">
-      <h1>Kisah Cinta Abadi</br>🤵🏻👰🏻</h1>
-      <p>Setiap Halaman,Ada Sebuah Kenangan Kami</br> 💝💘</p>
-       <p style="margin-top: 30px; font-size: 1em; font-style: italic;">Edy</br> & </br> Cindy </br> 13-mei-2025</p>
+      <h1>Kisah Cinta Abadi<br/>🤵🏻👰🏻</h1>
+      <p>Setiap Halaman,<br/>Ada Sebuah Kenangan Kami<br/> 💝💘</p>
+      <p style="margin-top: 20px; font-size: 0.9em; font-style: italic;">Edy<br/> & <br/> Cindy <br/> 13-Mei-2025</p>
+      <small style="margin-top: 15px; color:#999; animation: pulse 2s infinite;">(Geser layar untuk membuka)</small>
     </div>
   </div>
 
-  <!-- Halaman 2 (index 1): Foto Tunggal Miring Kiri (Pola 1: 6n+2) -->
+  <!-- Halaman 2 -->
   <div class="page" data-page-name="Langkah Pertama">
     <div class="content-wrapper">
       <div class="media-area">
@@ -391,12 +339,12 @@
     </div>
   </div>
 
-  <!-- Halaman 3 (index 2): Grid 2x1 (Pola 2: 6n+3) -->
+  <!-- Halaman 3 -->
   <div class="page" data-page-name="Harmoni Berdua">
     <div class="content-wrapper">
       <div class="media-area">
         <div class="photo-grid">
-          <div class="grid-item"><img src="Img/1.jpg" alt="Tertawa bahagia di taman"></div>
+          <div class="grid-item"><img src="Img/1.jpg" alt="Tertawa bahagia"></div>
           <div class="grid-item"><img src="Img/2.jpg" alt="Berpegangan tangan"></div>
         </div>
       </div>
@@ -404,19 +352,19 @@
     </div>
   </div>
 
-  <!-- Halaman 4 (index 3): Foto Tunggal Polaroid (Pola 3: 6n+4) -->
+  <!-- Halaman 4 -->
   <div class="page" data-page-name="Bingkai Kenangan">
     <div class="content-wrapper">
       <div class="media-area">
         <div class="single-photo-container">
-            <img src="Img/3.jpg" alt="Detail cincin pernikahan">
+            <img src="Img/3.jpg" alt="Detail cincin">
         </div>
       </div>
       <div class="page-caption"><p>"Abadi dalam satu jepretan, selamanya di hati."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 5 (index 4): Grid 1x2 (Pola 4: 6n+5) -->
+  <!-- Halaman 5 -->
   <div class="page" data-page-name="Simfoni Hati">
     <div class="content-wrapper">
       <div class="media-area">
@@ -429,7 +377,7 @@
     </div>
   </div>
 
-  <!-- Halaman 6 (index 5): Foto dengan Teks Kutipan (Pola 5: 6n+6) -->
+  <!-- Halaman 6 -->
   <div class="page" data-page-name="Janji Suci">
     <div class="content-wrapper">
       <div class="media-area">
@@ -443,159 +391,153 @@
     </div>
   </div>
 
-  <!-- Halaman 7 (index 6): Grid Asimetris (Pola 6: 6n+7) -->
+  <!-- Halaman 7 -->
   <div class="page" data-page-name="Mozaik Cinta">
     <div class="content-wrapper">
       <div class="media-area">
           <div class="photo-grid">
-              <div class="grid-item"><img src="Img/7.jpg" alt="Foto Besar Kolase"></div>
-              <div class="grid-item"><img src="Img/8.jpg" alt="Foto Kecil 1 Kolase"></div>
-              <div class="grid-item"><img src="Img/9.jpg" alt="Foto Kecil 2 Kolase"></div>
+              <div class="grid-item"><img src="Img/7.jpg" alt="Foto Besar"></div>
+              <div class="grid-item"><img src="Img/8.jpg" alt="Foto Kecil 1"></div>
+              <div class="grid-item"><img src="Img/9.jpg" alt="Foto Kecil 2"></div>
           </div>
       </div>
-      <div class="page-caption"><p>"Kepingan-kepingan momen, membentuk lukisan cinta kita."</p></div>
+      <div class="page-caption"><p>"Kepingan momen, membentuk lukisan cinta kita."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 8 (index 7): Foto Tunggal Miring Kiri (Pola 1: 6n+8 -> 6*1+2) -->
+  <!-- Halaman 8 -->
   <div class="page" data-page-name="Senandung Rindu">
     <div class="content-wrapper">
       <div class="media-area">
         <div class="single-photo-container">
-            <img src="Img/10.jpg" alt="Pasangan di bawah pohon">
+            <img src="Img/10.jpg" alt="Pasangan">
         </div>
       </div>
       <div class="page-caption"><p>"Setiap helaan napas adalah bisikan namamu."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 9 (index 8): Grid 2x1 (Pola 2: 6n+9 -> 6*1+3) -->
+  <!-- Halaman 9 -->
   <div class="page" data-page-name="Pelukan Hangat">
     <div class="content-wrapper">
       <div class="media-area">
         <div class="photo-grid">
           <div class="grid-item"><img src="Img/11.jpg" alt="Ciuman lembut"></div>
-          <div class="grid-item"><img src="Img/12.jpg" alt="Dekorasi pernikahan"></div>
+          <div class="grid-item"><img src="Img/12.jpg" alt="Dekorasi"></div>
         </div>
       </div>
-      <div class="page-caption"><p>"Dalam dekapanmu, kutemukan kedamaian sejati."</p></div>
+      <div class="page-caption"><p>"Dalam dekapanmu, kutemukan kedamaian."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 10 (index 9): Foto Tunggal Polaroid (Pola 3: 6n+10 -> 6*1+4) -->
+  <!-- Halaman 10 -->
   <div class="page" data-page-name="Potret Bahagia">
     <div class="content-wrapper">
       <div class="media-area">
         <div class="single-photo-container">
-            <img src="Img/13.JPG" alt="Pasangan di ayunan">
+            <img src="Img/13.JPG" alt="Pasangan">
         </div>
       </div>
       <div class="page-caption"><p>"Senyummu, alasan bahagiaku setiap hari."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 11 (index 10): Grid 1x2 (Pola 4: 6n+11 -> 6*1+5) -->
-  <div class="page" data-page-name="Cerita Kita Berdua">
+  <!-- Halaman 11 -->
+  <div class="page" data-page-name="Cerita Kita">
     <div class="content-wrapper">
       <div class="media-area">
           <div class="photo-grid">
-              <div class="grid-item"><img src="Img/19.JPG" alt="Genggaman tangan erat"></div>
-              <div class="grid-item"><img src="Img/20.JPG" alt="Senyum bahagia"></div>
+              <div class="grid-item"><img src="Img/19.JPG" alt="Genggaman"></div>
+              <div class="grid-item"><img src="Img/20.JPG" alt="Senyum"></div>
           </div>
       </div>
-      <div class="page-caption"><p>"Kita adalah dua bab berbeda dalam satu buku cinta."</p></div>
+      <div class="page-caption"><p>"Kita adalah dua bab berbeda dalam satu buku."</p></div>
     </div>
   </div>
 
-  <!-- Halaman 12 (index 11): Foto dengan Teks Kutipan (Pola 5: 6n+12 -> 6*1+6) -->
+  <!-- Halaman 12 -->
   <div class="page" data-page-name="Selamanya Milikmu">
     <div class="content-wrapper">
       <div class="media-area">
           <div class="single-photo-container">
-              <img src="Img/16.jpg" alt="Pasangan di rerumputan">
+              <img src="Img/16.jpg" alt="Pasangan">
           </div>
       </div>
-      <div class="page-caption">
-          <p>"Hatiku adalah milikmu, kini dan selamanya."</p>
-      </div>
+      <div class="page-caption"><p>"Hatiku adalah milikmu, kini dan selamanya."</p></div>
     </div>
   </div>
 
-   <!-- Halaman 13 (index 12): Foto Tunggal (Pola Default/6n+13 -> 6*2+1) -->
+   <!-- Halaman 13 -->
     <div class="page" data-page-name="Dalam Diam">
         <div class="content-wrapper">
             <div class="media-area">
                 <div class="single-photo-container">
-                    <img src="Img/17.JPG" alt="Pasangan berpegangan tangan di tengah kota">
+                    <img src="Img/17.JPG" alt="Pasangan">
                 </div>
             </div>
             <div class="page-caption"><p>"Bahkan dalam keheningan, cinta kita berbicara."</p></div>
         </div>
     </div>
 
-    <!-- Halaman 14 (index 13): Foto Tunggal Miring Kiri (Pola 1: 6n+14 -> 6*2+2) -->
-    <div class="page" data-page-name="Senyum Pagi Hari">
+    <!-- Halaman 14 -->
+    <div class="page" data-page-name="Senyum Pagi">
         <div class="content-wrapper">
             <div class="media-area">
                 <div class="single-photo-container">
-                    <img src="Img/18.JPG" alt="Pasangan menikmati matahari terbit">
+                    <img src="Img/18.JPG" alt="Pasangan">
                 </div>
             </div>
             <div class="page-caption"><p>"Setiap pagi bersamamu adalah berkah."</p></div>
         </div>
     </div>
 
-    <!-- Halaman 15 (index 14): Grid 2x1 (Pola 2: 6n+15 -> 6*2+3) -->
+    <!-- Halaman 15 -->
     <div class="page" data-page-name="Jejak Langkah">
         <div class="content-wrapper">
             <div class="media-area">
                 <div class="photo-grid">
-                    <div class="grid-item"><img src="Img/14.JPG" alt="Berjalan bersama di jalan setapak"></div>
-                    <div class="grid-item"><img src="Img/15.jpg" alt="Menatap horison bersama"></div>
+                    <div class="grid-item"><img src="Img/14.JPG" alt="Berjalan"></div>
+                    <div class="grid-item"><img src="Img/15.jpg" alt="Menatap"></div>
                 </div>
             </div>
             <div class="page-caption"><p>"Bersama kita arungi setiap perjalanan."</p></div>
         </div>
     </div>
 
-    <!-- Halaman 16 (index 15): Foto Tunggal Polaroid (Pola 3: 6n+16 -> 6*2+4) -->
+    <!-- Halaman 16 -->
     <div class="page" data-page-name="Memoar Manis">
         <div class="content-wrapper">
             <div class="media-area">
                 <div class="single-photo-container">
-                    <img src="Img/21.jpeg" alt="Foto candid bahagia">
+                    <img src="Img/21.jpeg" alt="Candid">
                 </div>
             </div>
             <div class="page-caption"><p>"Kenangan bersamamu adalah harta terindah."</p></div>
         </div>
     </div>
 
-
-   <!-- Halaman Belakang (index 16 - last): Back Cover -->
+   <!-- Sampul Belakang -->
     <div class="page" data-page-name="Akhir dari Awal">
         <div class="cover-content">
-            <h2>Bersiap Menjemput Kisah Baru</br> 🤵🏻👰🏻</h2>
-            <p>Terima Kasih🙏</br>Sampai Jumpa👋</p>
-             <p style="margin-top: 20px; font-size: 0.9em;">Edy</br> & </br> Cindy </br>13-mei-2025</p>
+            <h2>Bersiap Menjemput Kisah Baru<br/> 🤵🏻👰🏻</h2>
+            <p>Terima Kasih🙏<br/>Sampai Jumpa👋</p>
+             <p style="margin-top: 30px; font-size: 1em;">Edy<br/> & <br/> Cindy <br/>13-Mei-2025</p>
         </div>
     </div>
-
-
-  <!-- Kontrol -->
-  <div class="controls">
-    <button id="prevButton" aria-label="Halaman Sebelumnya">⬅ Sebelumnya</button>
-    <button id="nextButton" aria-label="Halaman Berikutnya">Berikutnya ➡</button>
-  </div>
-
-  <button id="musicToggle" aria-label="Putar atau Jeda Musik Latar">🎶 Putar Musik</button>
 </div>
 
-<!-- Audio dan Lightbox -->
+<!-- Kontrol Bawah -->
+<div class="controls">
+  <button id="prevButton" aria-label="Sebelumnya">⬅ Back</button>
+  <button id="nextButton" aria-label="Berikutnya">Next ➡</button>
+</div>
+
+<!-- Audio & Lightbox -->
 <audio id="flipSound" src="#" preload="auto"></audio>
 <audio id="bgm" src="Img/music.mp3" loop preload="auto"></audio>
-<div id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-image">
-  <button id="lightbox-close" aria-label="Tutup Pratinjau Gambar">×</button>
-  <img id="lightbox-image" src="" alt="Pratinjau Foto Diperbesar">
+<div id="lightbox" role="dialog" aria-modal="true">
+  <button id="lightbox-close" aria-label="Tutup">×</button>
+  <img id="lightbox-image" src="" alt="Pratinjau Diperbesar">
 </div>
 
 <script>
@@ -603,374 +545,187 @@
     "use strict";
 
     const album = document.getElementById('album');
-    if (!album) {
-        console.error("Album container not found!");
-        return;
-    }
-
     const pages = Array.from(album.querySelectorAll('.page'));
     const totalPages = pages.length;
-    let currentPageIndex = 0; // 0-indexed
+    let currentPageIndex = 0;
     let isAnimating = false;
     let isLightboxOpen = false;
 
     const prevButton = document.getElementById('prevButton');
     const nextButton = document.getElementById('nextButton');
     const musicToggleButton = document.getElementById('musicToggle');
-
     const flipSound = document.getElementById('flipSound');
     const backgroundMusic = document.getElementById('bgm');
-
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightbox-image');
-    const lightboxCloseButton = document.getElementById('lightbox-close');
-
-    // A base z-index value to ensure cover is on top initially
+    const lightboxClose = document.getElementById('lightbox-close');
     const initialCoverZIndex = totalPages + 2;
 
-    function setInitialPageZIndicesAndPosition() {
+    // Inisialisasi posisi Z-Index
+    function setInitialZIndices() {
       pages.forEach((page, index) => {
-        // Set z-index from back to front initially
-        // Cover (index 0) has the highest z-index initially
-        // Other pages stack below the cover
+         page.style.transformOrigin = 'left center';
          if (index === 0) {
              page.style.zIndex = initialCoverZIndex;
-             page.style.transformOrigin = 'left center';
-             page.style.left = '0';
-             page.style.right = 'auto';
          } else if (index === totalPages - 1) {
-             // Back cover initially is unflipped and on the right side, lowest z-index
-             page.style.zIndex = 0; // Very back
              page.style.transformOrigin = 'right center';
-             // Position on the right side. Width is 100%, so left: 0 positions it on the left.
-             // To position it on the right without changing width, use absolute positioning relative to container.
-             // Let's find the album's computed width and position the back cover.
-             // Simpler: just rely on transform-origin 'right center' and the 'flipped' class.
-             // Initial state: all pages at left: 0, width: 100%, stacked.
-             // The back cover ONLY moves right when it's NOT flipped.
-             // Let's adjust CSS for back cover not flipped to position it on the right.
-             page.style.transformOrigin = 'right center'; // This needs to be set initially
-             page.style.left = '0'; // Default position
-             page.style.right = 'auto';
-         }
-         else {
-            // Other pages stack from totalPages - 1 down to 1, all on the left side initially
+             page.style.zIndex = 0;
+         } else {
             page.style.zIndex = totalPages - index;
-            page.style.transformOrigin = 'left center';
-             page.style.left = '0';
-             page.style.right = 'auto';
          }
       });
-       // Special case: The very last page (back cover) when NOT flipped needs to be on the right.
-       // We handle this in CSS using :last-child:not(.flipped) { left: auto; right: 0; transform-origin: right center; }
-       // We already have this CSS, let's ensure it applies correctly over the JS defaults.
-       // The JS Z-index logic is what's critical here.
     }
 
-    // Function to handle the end of a page flip transition
-    function handlePageTransitionEnd(event) {
-         // Ensure the transition is on the 'transform' property
-        if (event.propertyName !== 'transform') return;
-
-        const page = event.target;
+    function handleTransitionEnd(e) {
+        if (e.propertyName !== 'transform') return;
+        const page = e.target;
         page.classList.remove('is-flipping', 'is-unflipping');
+        page.removeEventListener('transitionend', handleTransitionEnd);
 
-         // Remove the event listener after it fires
-        page.removeEventListener('transitionend', handlePageTransitionEnd);
-
-         // Reset z-index based on whether the page is flipped or not
-         const pageIndex = pages.indexOf(page);
-         if (pageIndex === -1) return; // Should not happen
-
-         if (pageIndex === 0) {
-             // Cover's z-index goes down after flipping
-             page.style.zIndex = page.classList.contains('flipped') ? (totalPages - 1) : initialCoverZIndex;
-         } else if (pageIndex === totalPages - 1) {
-             // Back cover's z-index goes up when unflipped, down when flipped
-             // When flipped, it's behind everything (z-index 0). When unflipped, it's just below the current page on the right.
-              page.style.zIndex = page.classList.contains('flipped') ? 0 : (totalPages - 1);
-         }
-         else {
-             // Other pages: flipped goes to the back (low zIndex), unflipped retains initial stack order
+        const pageIndex = pages.indexOf(page);
+        if (pageIndex === 0) {
+            page.style.zIndex = page.classList.contains('flipped') ? (totalPages - 1) : initialCoverZIndex;
+        } else if (pageIndex === totalPages - 1) {
+             page.style.zIndex = page.classList.contains('flipped') ? 0 : (totalPages - 1);
+        } else {
             page.style.zIndex = page.classList.contains('flipped') ? (totalPages - 1 - pageIndex) : (totalPages - pageIndex);
-         }
-
+        }
 
         isAnimating = false;
         updateNavigation();
-        // console.log(`Transition ended for page index ${pageIndex}. Flipped: ${page.classList.contains('flipped')}. New z-index: ${page.style.zIndex}`);
     }
 
+    function flipPage(index, forward) {
+        if (isAnimating || index < 0 || index >= totalPages) return;
+        const page = pages[index];
+        isAnimating = true;
+        page.style.zIndex = totalPages + 10; 
+        page.classList.add(forward ? 'is-flipping' : 'is-unflipping');
+        page.addEventListener('transitionend', handleTransitionEnd);
 
-    function flipPage(pageIndex, flipForward) {
-        if (isAnimating || pageIndex < 0 || pageIndex >= totalPages) return;
-
-        const page = pages[pageIndex];
-
-        isAnimating = true; // Lock controls during animation
-
-        // Set high z-index before starting the animation
-        page.style.zIndex = totalPages + 10; // Temporarily highest z-index
-        page.classList.add(flipForward ? 'is-flipping' : 'is-unflipping');
-
-         // Add event listener for the end of the transition
-        page.addEventListener('transitionend', handlePageTransitionEnd);
-
-        // Apply the transform based on direction
-        // The transform-origin is crucial and is set initially in JS/CSS
-        // pages[0].style.transformOrigin is 'left center'
-        // pages[totalPages-1].style.transformOrigin is 'right center'
-        // Other pages pages[1]..pages[totalPages-2] are 'left center'
-
-        if (flipForward) {
-             // When flipping forward, we flip the current page (currentPageIndex)
-             // This page rotates from 0deg to -180deg
-            page.classList.add('flipped');
-        } else {
-             // When flipping backward, we unflip the page behind the current one (currentPageIndex - 1)
-             // This page rotates from -180deg to 0deg
-            page.classList.remove('flipped');
+        if (forward) page.classList.add('flipped');
+        else page.classList.remove('flipped');
+        
+        if (flipSound && !isLightboxOpen) {
+            flipSound.currentTime = 0;
+            flipSound.play().catch(()=>{});
         }
-
-         // Play sound
-        playSound(flipSound);
-
-        // currentPageIndex is updated *after* the flip animation is complete in nextPage/prevPage
     }
-
 
     function nextPage() {
-      // Cannot turn next if already on the last page (back cover)
       if (currentPageIndex >= totalPages - 1 || isAnimating) return;
-
-      // The page to flip is the one currently displayed (or the cover)
-      const pageToFlipIndex = currentPageIndex;
-
-       // Initiate flip animation for the current page
-      flipPage(pageToFlipIndex, true);
-
-      // Update the current page index to the *next* page
+      flipPage(currentPageIndex, true);
       currentPageIndex++;
-
-       // Navigation buttons are updated immediately based on the new index,
-       // but they are disabled by `isAnimating` until transitionend
-       updateNavigation();
-       // console.log(`Attempting to flip to page ${currentPageIndex}. Animating page index: ${pageToFlipIndex}`);
+      updateNavigation();
     }
 
     function prevPage() {
-      // Cannot turn back if already on the first page (cover)
       if (currentPageIndex <= 0 || isAnimating) return;
-
-      // When turning backward from page X (currentPageIndex) to X-1, page X-1 is the one that *unflips*.
-      const pageToUnflipIndex = currentPageIndex - 1;
-
-      // Initiate unflip animation for the page behind the current one
-      flipPage(pageToUnflipIndex, false);
-
-      // Update the current page index to the *previous* page
+      flipPage(currentPageIndex - 1, false);
       currentPageIndex--;
-
-       // Navigation buttons are updated immediately based on the new index,
-       // but they are disabled by `isAnimating` until transitionend
-       updateNavigation();
-       // console.log(`Attempting to unflip to page ${currentPageIndex}. Animating page index: ${pageToUnflipIndex}`);
+      updateNavigation();
     }
-
 
     function updateNavigation() {
-        if (prevButton) {
-            // Disable if on the cover (index 0) or animating
-            prevButton.disabled = (currentPageIndex === 0 || isAnimating);
-            prevButton.setAttribute('aria-disabled', String(prevButton.disabled));
-        }
-        if (nextButton) {
-             // Disable if on the last page (index totalPages-1) or animating
-             nextButton.disabled = (currentPageIndex >= totalPages - 1 || isAnimating);
-             nextButton.setAttribute('aria-disabled', String(nextButton.disabled));
-        }
+        prevButton.disabled = (currentPageIndex === 0 || isAnimating);
+        nextButton.disabled = (currentPageIndex >= totalPages - 1 || isAnimating);
     }
 
-    function playSound(audioElement) {
-      if (audioElement && !isLightboxOpen) { // Don't play flip sound if lightbox is open
-        audioElement.currentTime = 0;
-        audioElement.play().catch(error => console.warn(`Gagal memutar audio: ${audioElement ? audioElement.id : 'unknown'}`, error));
+    // LIGHTBOX
+    function openLightbox(img) {
+      if (isAnimating) return;
+      lightboxImage.src = img.src;
+      lightbox.classList.add('active');
+      isLightboxOpen = true;
+      if (backgroundMusic && !backgroundMusic.paused) {
+          backgroundMusic.pause();
+          backgroundMusic.dataset.wasPlaying = 'true';
       }
-    }
-
-    function openLightbox(imgElement) {
-      if (lightbox && lightboxImage && imgElement && !isAnimating) { // Don't open lightbox if flipping
-        let highResSrc = imgElement.src;
-        // Try to get a higher resolution version from Unsplash if available
-        if (imgElement.src.includes('images.unsplash.com')) {
-            try {
-                 const url = new URL(imgElement.src);
-                 url.searchParams.set('w', '1600'); // Request max width 1600
-                 url.searchParams.set('q', '90'); // Request higher quality
-                 url.searchParams.delete('h'); // Remove height constraint if any
-                 url.searchParams.delete('fit'); // Remove fit constraint if any
-                 highResSrc = url.toString();
-            } catch(e) {
-                console.error("Failed to parse Unsplash URL", e);
-                // Fallback to original src
-                highResSrc = imgElement.src;
-            }
-        }
-
-        lightboxImage.src = highResSrc;
-        lightboxImage.alt = imgElement.alt || "Pratinjau gambar diperbesar";
-        lightbox.classList.add('active');
-        isLightboxOpen = true;
-        document.body.style.overflow = 'hidden'; // Prevent body scroll
-         // Pause background music if playing
-         if (backgroundMusic && !backgroundMusic.paused) {
-             backgroundMusic.pause();
-             backgroundMusic.dataset.wasPlaying = 'true'; // Remember state
-         }
-         updateMusicButtonText();
-      }
+      updateMusicBtn();
     }
 
     function closeLightbox() {
-      if (lightbox && isLightboxOpen) {
-        lightbox.classList.remove('active');
-        isLightboxOpen = false;
-        document.body.style.overflow = ''; // Restore body scroll
-         // Resume background music if it was playing
-         if (backgroundMusic && backgroundMusic.dataset.wasPlaying === 'true') {
-             backgroundMusic.play().catch(error => console.warn("Gagal melanjutkan musik latar:", error));
-             delete backgroundMusic.dataset.wasPlaying; // Reset state
-         }
-         updateMusicButtonText();
+      lightbox.classList.remove('active');
+      isLightboxOpen = false;
+      if (backgroundMusic && backgroundMusic.dataset.wasPlaying === 'true') {
+          backgroundMusic.play().catch(()=>{});
+          delete backgroundMusic.dataset.wasPlaying;
       }
+      updateMusicBtn();
     }
 
-    function updateMusicButtonText() {
-      if (musicToggleButton && backgroundMusic) {
-        musicToggleButton.textContent = backgroundMusic.paused ? '🎶 Putar Musik' : '🎶 Jeda Musik';
-        musicToggleButton.setAttribute('aria-label', backgroundMusic.paused ? 'Putar Musik Latar' : 'Jeda Musik Latar');
-      }
+    // MUSIK
+    function updateMusicBtn() {
+      musicToggleButton.textContent = backgroundMusic.paused ? '🎶 Putar Musik' : '🎶 Jeda Musik';
     }
-
     function toggleMusic() {
-      if (backgroundMusic) {
-        if (backgroundMusic.paused) {
-          backgroundMusic.play().catch(error => console.warn("Gagal memutar musik latar:", error));
-        } else {
-          backgroundMusic.pause();
-        }
-      }
+      if (backgroundMusic.paused) backgroundMusic.play().catch(()=>{});
+      else backgroundMusic.pause();
+      updateMusicBtn();
     }
 
-    function handleKeydown(event) {
-      if (isLightboxOpen) {
-        if (event.key === 'Escape') {
-          closeLightbox();
-        }
-        return; // Do not handle other keys when lightbox is open
-      }
-
-      if (isAnimating) return; // Ignore keypress during page flip
-
-      switch (event.key) {
-        case 'ArrowRight':
-          if (nextButton && !nextButton.disabled) {
-              event.preventDefault(); // Prevent page scroll
-              nextPage();
-          }
-          break;
-        case 'ArrowLeft':
-          if (prevButton && !prevButton.disabled) {
-              event.preventDefault(); // Prevent page scroll
-              prevPage();
-          }
-          break;
-        case ' ': // Spacebar
-            if (musicToggleButton) {
-                event.preventDefault(); // Prevent default spacebar action (scrolling)
-                toggleMusic();
-            }
-            break;
-      }
-    }
-
-    // --- Event Listeners Initialization ---
-    if (prevButton) prevButton.addEventListener('click', prevPage);
-    if (nextButton) nextButton.addEventListener('click', nextPage);
-    if (musicToggleButton) musicToggleButton.addEventListener('click', toggleMusic);
-
-    album.querySelectorAll('.page .single-photo-container img, .page .photo-grid img').forEach(img => {
-        img.style.cursor = 'zoom-in'; // Ensure cursor is correct
+    // EVENT LISTENER KLIK
+    prevButton.addEventListener('click', prevPage);
+    nextButton.addEventListener('click', nextPage);
+    musicToggleButton.addEventListener('click', toggleMusic);
+    lightboxClose.addEventListener('click', closeLightbox);
+    
+    document.querySelectorAll('.single-photo-container img, .photo-grid img').forEach(img => {
         img.addEventListener('click', () => openLightbox(img));
     });
 
-    if (lightbox) lightbox.addEventListener('click', (e) => {
-        // Close only if clicking directly on the background or close button, not the image itself
-        if(e.target === lightbox || e.target === lightboxCloseButton) closeLightbox();
-    });
-     // Add event listener to the image inside lightbox as well
-    if (lightboxImage) lightboxImage.addEventListener('click', closeLightbox);
+    // EVENT LISTENER GESER LAYAR (SWIPE) UNTUK HP
+    let touchStartX = 0;
+    let touchEndX = 0;
+    album.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
 
+    album.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
 
-    if (backgroundMusic) {
-      backgroundMusic.addEventListener('play', updateMusicButtonText);
-      backgroundMusic.addEventListener('pause', updateMusicButtonText);
-       updateMusicButtonText(); // Update button text initially
+    function handleSwipe() {
+        const threshold = 60; // Jarak minimal swipe
+        if (touchEndX < touchStartX - threshold) nextPage(); // Geser ke kiri (Next)
+        if (touchEndX > touchStartX + threshold) prevPage(); // Geser ke kanan (Prev)
     }
 
-    document.addEventListener('keydown', handleKeydown);
-
-
-    // --- Initialization ---
-    setInitialPageZIndicesAndPosition();
+    // Inisiasi awal
+    setInitialZIndices();
     updateNavigation();
-    // Ensure the cover page is initially visible and not flipped
-     pages[0].classList.remove('flipped');
-    // Ensure the back cover page is initially NOT flipped
-     pages[totalPages - 1].classList.remove('flipped');
-
-  })();
-
-   
-
-</script>
-<script>
-  document.addEventListener('contextmenu', event => event.preventDefault());
-  document.addEventListener('dragstart', event => event.preventDefault());
-</script>
-<script>
-  setInterval(() => {
-    if (window.outerHeight - window.innerHeight > 100 || window.outerWidth - window.innerWidth > 100) {
-      document.body.innerHTML = "<h1 style='color:red;text-align:center;'>Akses Diblokir</h1>";
+    pages[0].classList.remove('flipped');
+    pages[totalPages - 1].classList.remove('flipped');
+    if(backgroundMusic) {
+        backgroundMusic.addEventListener('play', updateMusicBtn);
+        backgroundMusic.addEventListener('pause', updateMusicBtn);
     }
-  }, 1000);
+  })();
 </script>
-<script>
-  // Mencegah klik kanan
-  document.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Mencegah inspect element (F12, Ctrl+Shift+I, Ctrl+U, dll)
+<script>
+  // PENGAMANAN ALBUM (Dimodifikasi khusus agar tidak error di Mobile)
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+
   document.addEventListener('keydown', function(e) {
-    if (
-      e.key === 'F12' ||
-      (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-      (e.ctrlKey && e.key === 'U') ||
-      (e.ctrlKey && e.shiftKey && e.key === 'C') ||
-      (e.ctrlKey && e.key === 'S') // block save
-    ) {
-      e.preventDefault();
-      alert("Fitur ini dinonaktifkan untuk melindungi privasi album.");
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.key === 'U')) {
+      e.preventDefault(); alert("Akses dinonaktifkan!");
     }
   });
 
-  // Mendeteksi devtools aktif (via lebar jendela debug)
   setInterval(function () {
-    const devtoolsOpen = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
-    if (devtoolsOpen) {
-      document.body.innerHTML = "<h1 style='color:red;text-align:center;padding-top:100px;'>🚫 Akses Diblokir: DevTools terdeteksi!</h1>";
+    // Di HP, address bar (URL) naik turun bikin outerHeight & innerHeight beda jauh.
+    // Jadi toleransi diatur tinggi (>250) supaya pengguna HP aman tidak kena blokir otomatis.
+    const isMobile = window.innerWidth <= 768;
+    const threshold = isMobile ? 300 : 160; 
+    const devtoolsOpen = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
+    
+    if (devtoolsOpen && !isMobile) {
+      document.body.innerHTML = "<h1 style='color:red;text-align:center;padding-top:50px;'>🚫 Akses Diblokir: DevTools terdeteksi!</h1>";
     }
   }, 1000);
 </script>
-
 </body>
 </html>
